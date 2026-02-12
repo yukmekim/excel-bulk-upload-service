@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: excel-bulk-upload-service
+
+  # Database Configuration (H2)
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+  
+  # H2 Console
+  h2:
+    console:
+      enabled: true
+
+  # File Upload Configuration
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  # Batch
+  batch:
+    job:
+      enabled: false # We will trigger jobs manually or via controller
