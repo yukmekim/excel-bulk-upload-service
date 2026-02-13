@@ -1,13 +1,12 @@
 package com.yukmekim.excelbulkuploadservice.util;
 
-import com.yukmekim.excelbulkuploadservice.entity.Product;
+import com.yukmekim.excelbulkuploadservice.dto.ProductUploadDto;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -77,20 +76,19 @@ class ExcelHelperTest {
         ByteArrayInputStream is = new ByteArrayInputStream(bos.toByteArray());
 
         // Act
-        List<Product> products = ExcelHelper.excelToProducts(is);
+        List<ProductUploadDto> products = ExcelHelper.excelToProducts(is);
 
         // Assert
         assertEquals(2, products.size());
 
-        Product p1 = products.get(0);
+        ProductUploadDto p1 = products.get(0);
         assertEquals("Test Product 1", p1.getName());
         assertEquals("Electronics", p1.getCategory());
-        assertEquals(new BigDecimal("100.5"), p1.getPrice()); // BigDecimal stripTrailingZeros might be needed in prod
-                                                              // but strictly 100.50 -> 100.5 in double
+        assertEquals(new BigDecimal("100.5"), p1.getPrice());
         assertEquals(10, p1.getStockQuantity());
         assertEquals("Description 1", p1.getDescription());
 
-        Product p2 = products.get(1);
+        ProductUploadDto p2 = products.get(1);
         assertEquals("Test Product 2", p2.getName());
         assertEquals(new BigDecimal("20.00"), p2.getPrice());
         assertEquals(5, p2.getStockQuantity());

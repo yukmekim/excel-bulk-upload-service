@@ -1,6 +1,6 @@
 package com.yukmekim.excelbulkuploadservice.util;
 
-import com.yukmekim.excelbulkuploadservice.entity.Product;
+import com.yukmekim.excelbulkuploadservice.dto.ProductUploadDto;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +24,7 @@ public class ExcelHelper {
         return true;
     }
 
-    public static List<Product> excelToProducts(InputStream is) {
+    public static List<ProductUploadDto> excelToProducts(InputStream is) {
         try {
             Workbook workbook = new XSSFWorkbook(is);
             // Try to find sheet by name "Products", otherwise use the first one
@@ -38,7 +38,7 @@ public class ExcelHelper {
             }
 
             Iterator<Row> rows = sheet.iterator();
-            List<Product> products = new ArrayList<>();
+            List<ProductUploadDto> products = new ArrayList<>();
 
             int rowNumber = 0;
             while (rows.hasNext()) {
@@ -59,7 +59,7 @@ public class ExcelHelper {
                     continue;
                 }
 
-                Product product = Product.builder()
+                ProductUploadDto product = ProductUploadDto.builder()
                         .name(name)
                         .category(getCellValueAsString(currentRow.getCell(1)))
                         .price(getCellValueAsBigDecimal(currentRow.getCell(2)))

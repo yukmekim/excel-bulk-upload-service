@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -84,8 +83,6 @@ class ProductUploadIntegrationTest {
         Product savedProduct = products.get(0);
         assertThat(savedProduct.getName()).isEqualTo("Integration Test Product");
         assertThat(savedProduct.getCategory()).isEqualTo("Test Category");
-        // BigDecimal comparison using compareTo is safer but using expected double
-        // value works with assertj if precise
         assertThat(savedProduct.getPrice()).isEqualByComparingTo(new BigDecimal("99.99"));
         assertThat(savedProduct.getStockQuantity()).isEqualTo(100);
 
