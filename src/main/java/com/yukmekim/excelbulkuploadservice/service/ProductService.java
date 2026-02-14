@@ -8,10 +8,16 @@ import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
 import com.yukmekim.excelbulkuploadservice.repository.UploadHistoryRepository;
 import com.yukmekim.excelbulkuploadservice.util.ExcelHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,33 +29,45 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final UploadHistoryRepository uploadHistoryRepository;
 
+    // Batch Dependencies
+    private final JobLauncher jobLauncher;
+    private final Job productUploadJob;
+
+    /**
+     * Run Spring Batch Job for bulk upload (Async)
+     */
+    public JobExecution runJob(MultipartFile file) throws Exception {
+        // Save uploaded file to temp directory
+        String originalFileName = file.getOriginalFilename();
+        File tempFile = File.createTempFile("excel-upload-", ".xlsx");
+        file.transferTo(tempFile);
+
+        JobParameters params = new JobParametersBuilder()
+                .addString("filePath", tempFile.getAbsolutePath())
+                .addString("originalFileName", originalFileName)
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+
+        return jobLauncher.run(productUploadJob, params);
+    }
+
+    /**
+     * Original Synchronous Save Method (Refactored)
+     */
     public void save(MultipartFile file) {
-        // 1. Initialize History (PENDING)
-        UploadHistory history = UploadHistory.builder()
-                .fileName(file.getOriginalFilename())
-                .status(UploadStatus.PENDING)
-                .build();
-        uploadHistoryRepository.save(history);
+        UploadHistory history = createUploadHistory(file.getOriginalFilename());
 
         try {
-            // 2. Start Processing (IN_PROGRESS)
-            history.startProcessing();
-            uploadHistoryRepository.save(history);
+            updateHistoryStatus(history, UploadStatus.IN_PROGRESS);
 
-            // 3. Parse Excel (Returns DTOs)
             List<ProductUploadDto> dtos = ExcelHelper.excelToProducts(file.getInputStream());
-
-            // 4. Convert DTO -> Entity
             List<Product> products = dtos.stream()
                     .map(this::mapToEntity)
                     .collect(Collectors.toList());
 
-            // 5. Save Entities (Transactional)
             saveProducts(products);
 
-            // 6. Complete History (COMPLETED)
-            history.complete(products.size(), products.size(), 0);
-            uploadHistoryRepository.save(history);
+            completeHistory(history, products.size(), products.size(), 0);
 
         } catch (IOException e) {
             history.fail("IO Error: " + e.getMessage());
@@ -66,7 +84,6 @@ public class ProductService {
         return productRepository.findAll();
     }
 
-    // Isolate the DB write to ensure it's transactional
     @Transactional
     protected void saveProducts(List<Product> products) {
         productRepository.saveAll(products);
@@ -80,5 +97,27 @@ public class ProductService {
                 .stockQuantity(dto.getStockQuantity())
                 .description(dto.getDescription())
                 .build();
+    }
+
+    // --- Helper methods for UploadHistory management ---
+
+    private UploadHistory createUploadHistory(String fileName) {
+        UploadHistory history = UploadHistory.builder()
+                .fileName(fileName)
+                .status(UploadStatus.PENDING)
+                .build();
+        return uploadHistoryRepository.save(history);
+    }
+
+    private void updateHistoryStatus(UploadHistory history, UploadStatus status) {
+        if (status == UploadStatus.IN_PROGRESS) {
+            history.startProcessing();
+        }
+        uploadHistoryRepository.save(history);
+    }
+
+    private void completeHistory(UploadHistory history, int total, int success, int failure) {
+        history.complete(total, success, failure);
+        uploadHistoryRepository.save(history);
     }
 }
