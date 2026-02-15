@@ -1,10 +1,13 @@
 package com.yukmekim.excelbulkuploadservice.util;
 
 import com.yukmekim.excelbulkuploadservice.dto.ProductUploadDto;
+import com.yukmekim.excelbulkuploadservice.entity.Product;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -13,8 +16,9 @@ import java.util.Iterator;
 import java.util.List;
 
 public class ExcelHelper {
+
     public static String TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    static String[] HEADERS = { "Name", "Category", "Price", "Stock Quantity", "Description" };
+    static String[] HEADERs = { "Id", "Name", "Category", "Price", "Stock Quantity", "Description" };
     static String SHEET = "Products";
 
     public static boolean hasExcelFormat(MultipartFile file) {
@@ -22,6 +26,37 @@ public class ExcelHelper {
             return false;
         }
         return true;
+    }
+
+    public static ByteArrayInputStream productsToExcel(List<Product> products) {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream();) {
+            Sheet sheet = workbook.createSheet(SHEET);
+
+            // Header
+            Row headerRow = sheet.createRow(0);
+
+            for (int col = 0; col < HEADERs.length; col++) {
+                Cell cell = headerRow.createCell(col);
+                cell.setCellValue(HEADERs[col]);
+            }
+
+            int rowIdx = 1;
+            for (Product product : products) {
+                Row row = sheet.createRow(rowIdx++);
+
+                row.createCell(0).setCellValue(product.getId());
+                row.createCell(1).setCellValue(product.getName());
+                row.createCell(2).setCellValue(product.getCategory());
+                row.createCell(3).setCellValue(product.getPrice().doubleValue());
+                row.createCell(4).setCellValue(product.getStockQuantity());
+                row.createCell(5).setCellValue(product.getDescription());
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("fail to import data to Excel file: " + e.getMessage());
+        }
     }
 
     public static List<ProductUploadDto> excelToProducts(InputStream is) {
@@ -88,8 +123,6 @@ public class ExcelHelper {
                 return String.valueOf(cell.getNumericCellValue());
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA:
-                return cell.getCellFormula();
             default:
                 return null;
         }
@@ -98,42 +131,31 @@ public class ExcelHelper {
     private static BigDecimal getCellValueAsBigDecimal(Cell cell) {
         if (cell == null)
             return BigDecimal.ZERO;
-
-        switch (cell.getCellType()) {
-            case NUMERIC:
-                return BigDecimal.valueOf(cell.getNumericCellValue());
-            case STRING:
-                try {
-                    String val = cell.getStringCellValue();
-                    if (val == null || val.trim().isEmpty())
-                        return BigDecimal.ZERO;
-                    return new BigDecimal(val);
-                } catch (NumberFormatException e) {
-                    return BigDecimal.ZERO;
-                }
-            default:
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return BigDecimal.valueOf(cell.getNumericCellValue());
+        } else if (cell.getCellType() == CellType.STRING) {
+            try {
+                return new BigDecimal(cell.getStringCellValue());
+            } catch (Exception e) {
                 return BigDecimal.ZERO;
+            }
         }
+        return BigDecimal.ZERO;
     }
 
     private static Integer getCellValueAsInteger(Cell cell) {
         if (cell == null)
             return 0;
-
-        switch (cell.getCellType()) {
-            case NUMERIC:
-                return (int) cell.getNumericCellValue();
-            case STRING:
-                try {
-                    String val = cell.getStringCellValue();
-                    if (val == null || val.trim().isEmpty())
-                        return 0;
-                    return Integer.parseInt(val);
-                } catch (NumberFormatException e) {
-                    return 0;
-                }
-            default:
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return (int) cell.getNumericCellValue();
+        } else if (cell.getCellType() == CellType.STRING) {
+            try {
+                // Handle cases like "10.0" -> 10
+                return Double.valueOf(cell.getStringCellValue()).intValue();
+            } catch (Exception e) {
                 return 0;
+            }
         }
+        return 0;
     }
 }
