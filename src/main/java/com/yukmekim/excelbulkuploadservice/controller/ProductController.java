@@ -2,6 +2,8 @@ package com.yukmekim.excelbulkuploadservice.controller;
 
 import com.yukmekim.excelbulkuploadservice.dto.ResponseMessage;
 import com.yukmekim.excelbulkuploadservice.entity.Product;
+import com.yukmekim.excelbulkuploadservice.exception.BusinessException;
+import com.yukmekim.excelbulkuploadservice.exception.ErrorCode;
 import com.yukmekim.excelbulkuploadservice.service.ProductService;
 import com.yukmekim.excelbulkuploadservice.util.ExcelHelper;
 import lombok.RequiredArgsConstructor;
@@ -25,56 +27,55 @@ public class ProductController {
 
     @PostMapping("/upload")
     public ResponseEntity<ResponseMessage> uploadFile(@RequestParam("file") MultipartFile file) {
-        String message = "";
-
-        if (ExcelHelper.hasExcelFormat(file)) {
-            try {
-                productService.save(file);
-                message = "Uploaded the file successfully: " + file.getOriginalFilename();
-                return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
-            } catch (Exception e) {
-                message = "Could not upload the file: " + file.getOriginalFilename() + "!";
-                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(message));
-            }
+        if (!ExcelHelper.hasExcelFormat(file)) {
+            throw new BusinessException(ErrorCode.EXCEL_FILE_NOT_FOUND);
         }
 
-        message = "Please upload an excel file!";
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseMessage(message));
+        try {
+            productService.save(file);
+            String message = "Uploaded the file successfully: " + file.getOriginalFilename();
+            return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.EXCEL_FILE_UPLOAD_ERROR, e.getMessage());
+        }
     }
 
     @PostMapping("/upload-batch")
     public ResponseEntity<ResponseMessage> uploadFileBatch(@RequestParam("file") MultipartFile file) {
-        String message = "";
-
-        if (ExcelHelper.hasExcelFormat(file)) {
-            try {
-                JobExecution execution = productService.runJob(file);
-                message = "Batch Job started successfully. Job ID: " + execution.getJobId() + ", Status: "
-                        + execution.getStatus();
-                return ResponseEntity.status(HttpStatus.ACCEPTED).body(new ResponseMessage(message));
-            } catch (Exception e) {
-                message = "Could not start batch job: " + e.getMessage();
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ResponseMessage(message));
-            }
+        if (!ExcelHelper.hasExcelFormat(file)) {
+            throw new BusinessException(ErrorCode.EXCEL_FILE_NOT_FOUND);
         }
 
-        message = "Please upload an excel file!";
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseMessage(message));
+        try {
+            JobExecution execution = productService.runJob(file);
+            String message = "Batch Job started successfully. Job ID: " + execution.getJobId() + ", Status: "
+                    + execution.getStatus();
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(new ResponseMessage(message));
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.EXCEL_JOB_START_ERROR, e.getMessage());
+        }
     }
 
     @GetMapping("/products")
     public ResponseEntity<List<Product>> getAllProducts() {
-        try {
-            // productService.getAllProducts() returns List<Product>
-            List<Product> products = productService.getAllProducts();
+        List<Product> products = productService.getAllProducts();
 
-            if (products.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-
-            return new ResponseEntity<>(products, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        if (products.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
+
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<InputStreamResource> downloadExcel() {
+        String filename = "products.xlsx";
+        InputStreamResource file = new InputStreamResource(productService.load());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
     }
 }
