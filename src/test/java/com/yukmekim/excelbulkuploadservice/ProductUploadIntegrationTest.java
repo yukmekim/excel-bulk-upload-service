@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -20,8 +22,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -88,6 +93,25 @@ class ProductUploadIntegrationTest {
 
         // Verify History
         assertThat(uploadHistoryRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldDownloadExcelFile() throws Exception {
+        // Given: Save a product to DB
+        Product product = Product.builder()
+                .name("Download Test Product")
+                .category("Test Category")
+                .price(new BigDecimal("150.00"))
+                .stockQuantity(50)
+                .description("Description for download test")
+                .build();
+        productRepository.save(product);
+
+        // When & Then: Perform download request
+        mockMvc.perform(get("/api/excel/download"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=products.xlsx"))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
     }
 
     @Test
