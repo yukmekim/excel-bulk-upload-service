@@ -8,11 +8,11 @@ import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
 import com.yukmekim.excelbulkuploadservice.repository.UploadHistoryRepository;
 import com.yukmekim.excelbulkuploadservice.util.ExcelHelper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.batch.core.job.Job;
-import org.springframework.batch.core.job.JobExecution;
-import org.springframework.batch.core.job.parameters.JobParameters;
-import org.springframework.batch.core.job.parameters.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,7 +31,7 @@ public class ProductService {
     private final UploadHistoryRepository uploadHistoryRepository;
 
     // Batch Dependencies
-    private final JobOperator jobOperator;
+    private final JobLauncher jobLauncher;
     private final Job productUploadJob;
 
     /**
@@ -49,7 +49,7 @@ public class ProductService {
                 .addLong("time", System.currentTimeMillis())
                 .toJobParameters();
 
-        return jobOperator.start(productUploadJob, params);
+        return jobLauncher.run(productUploadJob, params);
     }
 
     /**
