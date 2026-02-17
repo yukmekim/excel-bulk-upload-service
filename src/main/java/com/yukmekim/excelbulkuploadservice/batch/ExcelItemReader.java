@@ -1,8 +1,8 @@
 package com.yukmekim.excelbulkuploadservice.batch;
 
 import com.yukmekim.excelbulkuploadservice.dto.ProductUploadDto;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
@@ -11,17 +11,22 @@ import org.springframework.batch.item.ParseException;
 import org.springframework.batch.item.UnexpectedInputException;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.Map;
 
+@Slf4j
 public class ExcelItemReader implements ItemStreamReader<ProductUploadDto> {
 
     private final String filePath;
     private Workbook workbook;
-    private Iterator<Row> rowIterator;
-    private static final String CURRENT_ROW = "current.row";
+    private Sheet sheet;
     private int currentRowIndex = 0;
+
+    // Header Mapping: Column Name -> Index
+    private Map<String, Integer> headerMap = new HashMap<>();
 
     public ExcelItemReader(String filePath) {
         this.filePath = filePath;
@@ -32,65 +37,138 @@ public class ExcelItemReader implements ItemStreamReader<ProductUploadDto> {
         try {
             File file = new File(filePath);
             if (!file.exists()) {
-                throw new ItemStreamException("File not found: " + filePath);
+                throw new ItemStreamException("Excel file not found: " + filePath);
             }
 
-            this.workbook = new XSSFWorkbook(file);
-            Sheet sheet = workbook.getSheetAt(0);
-            this.rowIterator = sheet.iterator();
+            FileInputStream fis = new FileInputStream(file);
+            workbook = WorkbookFactory.create(fis);
+            sheet = workbook.getSheetAt(0);
 
-            // Handle restart logic if needed (simple skip)
-            if (executionContext.containsKey(CURRENT_ROW)) {
-                int startAt = executionContext.getInt(CURRENT_ROW);
-                for (int i = 0; i < startAt && rowIterator.hasNext(); i++) {
-                    rowIterator.next();
-                    currentRowIndex++;
+            // Parse Header (First Row)
+            Row headerRow = sheet.getRow(0);
+            if (headerRow != null) {
+                for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                    Cell cell = headerRow.getCell(i);
+                    if (cell != null) {
+                        String headerName = cell.toString().trim();
+                        headerMap.put(headerName, i);
+                    }
                 }
-            } else {
-                // Skip header if it's a fresh start
-                if (this.rowIterator.hasNext()) {
-                    this.rowIterator.next();
-                }
+                log.info("Parsed Excel Headers: {}", headerMap);
             }
-        } catch (IOException | org.apache.poi.openxml4j.exceptions.InvalidFormatException e) {
-            throw new ItemStreamException("Failed to initialize Excel reader", e);
+
+            // Data starts from index 1 (skip header)
+            currentRowIndex = 1;
+
+        } catch (IOException e) {
+            throw new ItemStreamException("Failed to open Excel file", e);
         }
     }
 
     @Override
     public ProductUploadDto read()
             throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
-        if (rowIterator != null && rowIterator.hasNext()) {
-            Row row = rowIterator.next();
-            currentRowIndex++;
+        if (sheet == null) {
+            return null;
+        }
 
-            // Skip empty rows logic could be enhanced here
-            ProductUploadDto dto = rowToDto(row);
+        if (currentRowIndex > sheet.getLastRowNum()) {
+            return null; // End of file
+        }
 
-            // If row is invalid/empty, we might want to skip or return null?
-            // For now, let's assume rowToDto handles basic extraction.
-            // If it returns a valid object, we return it.
-            // If the row was logically empty but physically present, we might get an empty
-            // DTO.
-            // Let's rely on rowToDto's checks or add a check here.
+        Row row = sheet.getRow(currentRowIndex);
+        currentRowIndex++;
 
-            if (dto != null && (dto.getName() == null || dto.getName().trim().isEmpty())) {
-                // Skip this row by recursion or loop?
-                // Recursion is risky for deep stacks. Let's use a loop structure instead in a
-                // real-world scenario,
-                // but for simplicity, we return null if valid data isn't found?
-                // No, returning null ends the step. We should read again.
+        if (row == null) {
+            return read(); // Skip empty row
+        }
+
+        try {
+            // Get values using header names
+            String name = getCellStringValue(row, "Name");
+            // If mandatory field 'Name' is entirely missing, skip row
+            if (name == null || name.trim().isEmpty()) {
                 return read();
             }
 
-            return dto;
+            String category = getCellStringValue(row, "Category");
+            BigDecimal price = getCellNumericValue(row, "Price");
+            int stockQuantity = getCellIntValue(row, "Stock Quantity");
+            String description = getCellStringValue(row, "Description");
+
+            return ProductUploadDto.builder()
+                    .name(name)
+                    .category(category)
+                    .price(price)
+                    .stockQuantity(stockQuantity)
+                    .description(description)
+                    .build();
+        } catch (Exception e) {
+            log.warn("Skipping row {} due to parsing error: {}", currentRowIndex, e.getMessage());
+            return read();
         }
-        return null;
+    }
+
+    private String getCellStringValue(Row row, String headerName) {
+        Integer index = headerMap.get(headerName);
+        if (index == null)
+            return null;
+
+        Cell cell = row.getCell(index);
+        if (cell == null)
+            return null;
+
+        return cell.toString();
+    }
+
+    private BigDecimal getCellNumericValue(Row row, String headerName) {
+        Integer index = headerMap.get(headerName);
+        if (index == null)
+            return BigDecimal.ZERO;
+
+        Cell cell = row.getCell(index);
+        if (cell == null)
+            return BigDecimal.ZERO;
+
+        try {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                return BigDecimal.valueOf(cell.getNumericCellValue());
+            } else {
+                String val = cell.toString().trim();
+                return val.isEmpty() ? BigDecimal.ZERO : new BigDecimal(val);
+            }
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private int getCellIntValue(Row row, String headerName) {
+        Integer index = headerMap.get(headerName);
+        if (index == null)
+            return 0;
+
+        Cell cell = row.getCell(index);
+        if (cell == null)
+            return 0;
+
+        try {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                return (int) cell.getNumericCellValue();
+            } else {
+                String val = cell.toString().trim();
+                if (val.isEmpty())
+                    return 0;
+                double d = Double.parseDouble(val);
+                return (int) d;
+            }
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     @Override
     public void update(ExecutionContext executionContext) throws ItemStreamException {
-        executionContext.putInt(CURRENT_ROW, currentRowIndex);
+        // No-op
     }
 
     @Override
@@ -102,67 +180,5 @@ public class ExcelItemReader implements ItemStreamReader<ProductUploadDto> {
                 throw new ItemStreamException("Error closing workbook", e);
             }
         }
-    }
-
-    private ProductUploadDto rowToDto(Row row) {
-        Cell nameCell = row.getCell(0);
-        String name = getCellValueAsString(nameCell);
-
-        if (name == null || name.trim().isEmpty()) {
-            return new ProductUploadDto(); // Return empty object to trigger skip logic in read()
-        }
-
-        return ProductUploadDto.builder()
-                .name(name)
-                .category(getCellValueAsString(row.getCell(1)))
-                .price(getCellValueAsBigDecimal(row.getCell(2)))
-                .stockQuantity(getCellValueAsInteger(row.getCell(3)))
-                .description(getCellValueAsString(row.getCell(4)))
-                .build();
-    }
-
-    private String getCellValueAsString(Cell cell) {
-        if (cell == null)
-            return null;
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue();
-            case NUMERIC:
-                return String.valueOf(cell.getNumericCellValue());
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            default:
-                return null;
-        }
-    }
-
-    private BigDecimal getCellValueAsBigDecimal(Cell cell) {
-        if (cell == null)
-            return BigDecimal.ZERO;
-        if (cell.getCellType() == CellType.NUMERIC) {
-            return BigDecimal.valueOf(cell.getNumericCellValue());
-        } else if (cell.getCellType() == CellType.STRING) {
-            try {
-                return new BigDecimal(cell.getStringCellValue());
-            } catch (Exception e) {
-                return BigDecimal.ZERO;
-            }
-        }
-        return BigDecimal.ZERO;
-    }
-
-    private Integer getCellValueAsInteger(Cell cell) {
-        if (cell == null)
-            return 0;
-        if (cell.getCellType() == CellType.NUMERIC) {
-            return (int) cell.getNumericCellValue();
-        } else if (cell.getCellType() == CellType.STRING) {
-            try {
-                return Double.valueOf(cell.getStringCellValue()).intValue();
-            } catch (Exception e) {
-                return 0;
-            }
-        }
-        return 0;
     }
 }
