@@ -6,6 +6,7 @@ import com.yukmekim.excelbulkuploadservice.entity.UploadHistory;
 import com.yukmekim.excelbulkuploadservice.entity.UploadStatus;
 import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
 import com.yukmekim.excelbulkuploadservice.repository.UploadHistoryRepository;
+import com.yukmekim.excelbulkuploadservice.service.storage.FileStorageService;
 import com.yukmekim.excelbulkuploadservice.util.ExcelHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +29,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final UploadHistoryRepository uploadHistoryRepository;
+    private final FileStorageService fileStorageService;
 
     // Batch Dependencies
     private final JobLauncher jobLauncher;
@@ -38,14 +39,12 @@ public class ProductService {
      * Run Spring Batch Job for bulk upload (Async)
      */
     public JobExecution runJob(MultipartFile file) throws Exception {
-        // Save uploaded file to temp directory
-        String originalFileName = file.getOriginalFilename();
-        File tempFile = File.createTempFile("excel-upload-", ".xlsx");
-        file.transferTo(tempFile);
+        // Store the uploaded file using FileStorageService (Local, S3, etc.)
+        String storedFilePath = fileStorageService.store(file);
 
         JobParameters params = new JobParametersBuilder()
-                .addString("filePath", tempFile.getAbsolutePath())
-                .addString("originalFileName", originalFileName)
+                .addString("filePath", storedFilePath)
+                .addString("originalFileName", file.getOriginalFilename())
                 .addLong("time", System.currentTimeMillis())
                 .toJobParameters();
 
