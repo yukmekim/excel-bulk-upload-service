@@ -29,5 +29,7 @@ spring:
 
 # File Storage Configuration
 file:
-  upload-dir: upload-dir
+  type: LOCAL
+  local:
+    upload-dir: upload-dir
 

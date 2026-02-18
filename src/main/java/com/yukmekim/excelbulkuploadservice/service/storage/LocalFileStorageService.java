@@ -3,6 +3,7 @@ package com.yukmekim.excelbulkuploadservice.service.storage;
 import com.yukmekim.excelbulkuploadservice.config.FileStorageProperties;
 import com.yukmekim.excelbulkuploadservice.exception.BusinessException;
 import com.yukmekim.excelbulkuploadservice.exception.ErrorCode;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -18,16 +19,18 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(prefix = "file", name = "type", havingValue = "LOCAL", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
 
     private final Path rootLocation;
 
     public LocalFileStorageService(FileStorageProperties properties) {
-        if (properties.getUploadDir() == null || properties.getUploadDir().trim().isEmpty()) {
+        String uploadDir = properties.getLocal().getUploadDir();
+        if (uploadDir == null || uploadDir.trim().isEmpty()) {
             throw new RuntimeException("File upload location can not be empty.");
         }
 
-        this.rootLocation = Paths.get(properties.getUploadDir())
+        this.rootLocation = Paths.get(uploadDir)
                 .toAbsolutePath().normalize();
 
         try {
