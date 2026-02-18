@@ -1,5 +1,6 @@
 package com.yukmekim.excelbulkuploadservice.service.storage;
 
+import com.yukmekim.excelbulkuploadservice.config.FileStorageProperties;
 import com.yukmekim.excelbulkuploadservice.exception.BusinessException;
 import com.yukmekim.excelbulkuploadservice.exception.ErrorCode;
 import org.springframework.core.io.Resource;
@@ -19,11 +20,18 @@ import java.util.UUID;
 @Service
 public class LocalFileStorageService implements FileStorageService {
 
-    private final Path rootLocation = Paths.get("upload-dir");
+    private final Path rootLocation;
 
-    public LocalFileStorageService() {
+    public LocalFileStorageService(FileStorageProperties properties) {
+        if (properties.getUploadDir() == null || properties.getUploadDir().trim().isEmpty()) {
+            throw new RuntimeException("File upload location can not be empty.");
+        }
+
+        this.rootLocation = Paths.get(properties.getUploadDir())
+                .toAbsolutePath().normalize();
+
         try {
-            Files.createDirectories(rootLocation);
+            Files.createDirectories(this.rootLocation);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize storage location", e);
         }

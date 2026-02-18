@@ -26,3 +26,8 @@ spring:
   batch:
     job:
       enabled: false # We will trigger jobs manually or via controller
+
+# File Storage Configuration
+file:
+  upload-dir: upload-dir
+
