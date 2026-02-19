@@ -1,9 +1,10 @@
 package com.yukmekim.excelbulkuploadservice.dto;
 
-import com.yukmekim.excelbulkuploadservice.exception.ErrorCode;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;
+
+import com.yukmekim.excelbulkuploadservice.common.exception.ErrorCode;
 
 @Getter
 @Builder

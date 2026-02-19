@@ -1,8 +1,9 @@
 package com.yukmekim.excelbulkuploadservice.service.storage;
 
+import com.yukmekim.excelbulkuploadservice.common.exception.BusinessException;
+import com.yukmekim.excelbulkuploadservice.common.exception.ErrorCode;
 import com.yukmekim.excelbulkuploadservice.config.FileStorageProperties;
-import com.yukmekim.excelbulkuploadservice.exception.BusinessException;
-import com.yukmekim.excelbulkuploadservice.exception.ErrorCode;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
