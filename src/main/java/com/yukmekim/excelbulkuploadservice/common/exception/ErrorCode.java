@@ -1,4 +1,4 @@
-package com.yukmekim.excelbulkuploadservice.exception;
+package com.yukmekim.excelbulkuploadservice.common.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

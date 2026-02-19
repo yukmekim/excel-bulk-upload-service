@@ -1,4 +1,4 @@
-package com.yukmekim.excelbulkuploadservice.exception;
+package com.yukmekim.excelbulkuploadservice.common.exception;
 
 import com.yukmekim.excelbulkuploadservice.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
