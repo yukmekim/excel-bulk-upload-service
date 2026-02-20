@@ -1,7 +1,7 @@
 package com.yukmekim.excelbulkuploadservice.service.storage;
 
 import com.yukmekim.excelbulkuploadservice.config.FileStorageProperties;
-import com.yukmekim.excelbulkuploadservice.exception.BusinessException;
+import com.yukmekim.excelbulkuploadservice.common.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
