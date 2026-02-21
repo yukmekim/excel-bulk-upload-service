@@ -60,15 +60,14 @@ public class ExcelHelper {
     }
 
     public static List<ProductUploadDto> excelToProducts(InputStream is) {
-        try {
-            Workbook workbook = new XSSFWorkbook(is);
+        try (Workbook workbook = new XSSFWorkbook(is)) {
             // Try to find sheet by name "Products", otherwise use the first one
             Sheet sheet = workbook.getSheet(SHEET);
             if (sheet == null) {
                 if (workbook.getNumberOfSheets() > 0) {
                     sheet = workbook.getSheetAt(0);
                 } else {
-                    return new ArrayList<>();
+                    return new ArrayList<>(); // workbook은 try-with-resources가 자동 close
                 }
             }
 
@@ -106,8 +105,7 @@ public class ExcelHelper {
                 rowNumber++;
             }
 
-            workbook.close();
-            return products;
+            return products; // workbook은 try-with-resources가 자동 close
         } catch (IOException e) {
             throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
         }
