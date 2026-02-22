@@ -34,13 +34,13 @@ public class ExcelItemReader implements ItemStreamReader<ProductUploadDto> {
 
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
-        try {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                throw new ItemStreamException("Excel file not found: " + filePath);
-            }
+        File file = new File(filePath);
+        if (!file.exists()) {
+            throw new ItemStreamException("Excel file not found: " + filePath);
+        }
 
-            FileInputStream fis = new FileInputStream(file);
+        // try-with-resources로 FileInputStream이 Workbook 생성 후 항상 close되도록 보장
+        try (FileInputStream fis = new FileInputStream(file)) {
             workbook = WorkbookFactory.create(fis);
             sheet = workbook.getSheetAt(0);
 
