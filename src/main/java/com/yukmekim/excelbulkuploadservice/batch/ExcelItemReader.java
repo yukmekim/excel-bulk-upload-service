@@ -72,41 +72,43 @@ public class ExcelItemReader implements ItemStreamReader<ProductUploadDto> {
             return null;
         }
 
-        if (currentRowIndex > sheet.getLastRowNum()) {
-            return null; // End of file
-        }
+        // 재귀 대신 while 루프로 유효한 행을 찾을 때까지 반복
+        // 빈 행이 대량으로 연속되어도 StackOverflowError 없이 안전하게 처리
+        while (currentRowIndex <= sheet.getLastRowNum()) {
+            Row row = sheet.getRow(currentRowIndex);
+            currentRowIndex++;
 
-        Row row = sheet.getRow(currentRowIndex);
-        currentRowIndex++;
-
-        if (row == null) {
-            return read(); // Skip empty row
-        }
-
-        try {
-            // Get values using header names
-            String name = getCellStringValue(row, "Name");
-            // If mandatory field 'Name' is entirely missing, skip row
-            if (name == null || name.trim().isEmpty()) {
-                return read();
+            // 완전히 비어있는 행(null) 건너뜀
+            if (row == null) {
+                continue;
             }
 
-            String category = getCellStringValue(row, "Category");
-            BigDecimal price = getCellNumericValue(row, "Price");
-            int stockQuantity = getCellIntValue(row, "Stock Quantity");
-            String description = getCellStringValue(row, "Description");
+            try {
+                String name = getCellStringValue(row, "Name");
+                // 필수 필드 'Name'이 없는 행 건너뜀
+                if (name == null || name.trim().isEmpty()) {
+                    continue;
+                }
 
-            return ProductUploadDto.builder()
-                    .name(name)
-                    .category(category)
-                    .price(price)
-                    .stockQuantity(stockQuantity)
-                    .description(description)
-                    .build();
-        } catch (Exception e) {
-            log.warn("Skipping row {} due to parsing error: {}", currentRowIndex, e.getMessage());
-            return read();
+                String category = getCellStringValue(row, "Category");
+                BigDecimal price = getCellNumericValue(row, "Price");
+                int stockQuantity = getCellIntValue(row, "Stock Quantity");
+                String description = getCellStringValue(row, "Description");
+
+                return ProductUploadDto.builder()
+                        .name(name)
+                        .category(category)
+                        .price(price)
+                        .stockQuantity(stockQuantity)
+                        .description(description)
+                        .build();
+            } catch (Exception e) {
+                log.warn("Skipping row {} due to parsing error: {}", currentRowIndex, e.getMessage());
+                // 파싱 오류 행도 건너뛰고 다음 행 계속
+            }
         }
+
+        return null; // 더 이상 읽을 유효한 행 없음
     }
 
     private String getCellStringValue(Row row, String headerName) {
