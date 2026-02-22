@@ -25,11 +25,13 @@ public class BatchConfig {
     private final ProductRepository productRepository;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
+    private final UploadFileCleanupListener uploadFileCleanupListener;
 
     @Bean
     public Job productUploadJob(Step productUploadStep) {
         return new JobBuilder("productUploadJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
+                .listener(uploadFileCleanupListener)
                 .start(productUploadStep)
                 .build();
     }
