@@ -26,7 +26,7 @@ public class ExcelItemReader implements ItemStreamReader<ProductUploadDto> {
     private int currentRowIndex = 0;
 
     // Header Mapping: Column Name -> Index
-    private Map<String, Integer> headerMap = new HashMap<>();
+    private final Map<String, Integer> headerMap = new HashMap<>();
 
     public ExcelItemReader(String filePath) {
         this.filePath = filePath;
