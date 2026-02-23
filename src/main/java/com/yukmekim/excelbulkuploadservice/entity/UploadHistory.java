@@ -29,6 +29,9 @@ public class UploadHistory {
     private Integer successCount;
     private Integer failureCount;
 
+    @Column(length = 1000)
+    private String errorMessage;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime uploadedAt;
@@ -47,8 +50,9 @@ public class UploadHistory {
         this.completedAt = LocalDateTime.now();
     }
 
-    public void fail(String errorDetails) { // Could expand to store error details later
+    public void fail(String errorDetails) {
         this.status = UploadStatus.FAILED;
+        this.errorMessage = errorDetails;
         this.completedAt = LocalDateTime.now();
     }
 }

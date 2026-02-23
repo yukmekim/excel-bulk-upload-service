@@ -70,13 +70,15 @@ public class ProductService {
             completeHistory(history, products.size(), products.size(), 0);
 
         } catch (IOException e) {
-            history.fail("IO Error: " + e.getMessage());
+            String errorMsg = "[IOException] " + e.getMessage();
+            history.fail(errorMsg);
             uploadHistoryRepository.save(history);
-            throw new RuntimeException("Fail to process excel file: " + e.getMessage());
+            throw new RuntimeException("Failed to process excel file: " + e.getMessage(), e);
         } catch (Exception e) {
-            history.fail("Unexpected Error: " + e.getMessage());
+            String errorMsg = "[" + e.getClass().getSimpleName() + "] " + e.getMessage();
+            history.fail(errorMsg);
             uploadHistoryRepository.save(history);
-            throw new RuntimeException("Unexpected error during upload: " + e.getMessage());
+            throw new RuntimeException("Unexpected error during upload: " + e.getMessage(), e);
         }
     }
 
