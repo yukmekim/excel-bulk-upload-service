@@ -17,27 +17,24 @@ import java.util.List;
 
 public class ExcelHelper {
 
-    public static String TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    static String[] HEADERs = { "Id", "Name", "Category", "Price", "Stock Quantity", "Description" };
-    static String SHEET = "Products";
+    public static final String EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private static final String[] HEADERS = { "Id", "Name", "Category", "Price", "Stock Quantity", "Description" };
+    private static final String SHEET_NAME = "Products";
 
     public static boolean hasExcelFormat(MultipartFile file) {
-        if (!TYPE.equals(file.getContentType())) {
-            return false;
-        }
-        return true;
+        return EXCEL_CONTENT_TYPE.equals(file.getContentType());
     }
 
     public static ByteArrayInputStream productsToExcel(List<Product> products) {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream();) {
-            Sheet sheet = workbook.createSheet(SHEET);
+            Sheet sheet = workbook.createSheet(SHEET_NAME);
 
             // Header
             Row headerRow = sheet.createRow(0);
 
-            for (int col = 0; col < HEADERs.length; col++) {
+            for (int col = 0; col < HEADERS.length; col++) {
                 Cell cell = headerRow.createCell(col);
-                cell.setCellValue(HEADERs[col]);
+                cell.setCellValue(HEADERS[col]);
             }
 
             int rowIdx = 1;
@@ -62,7 +59,7 @@ public class ExcelHelper {
     public static List<ProductUploadDto> excelToProducts(InputStream is) {
         try (Workbook workbook = new XSSFWorkbook(is)) {
             // Try to find sheet by name "Products", otherwise use the first one
-            Sheet sheet = workbook.getSheet(SHEET);
+            Sheet sheet = workbook.getSheet(SHEET_NAME);
             if (sheet == null) {
                 if (workbook.getNumberOfSheets() > 0) {
                     sheet = workbook.getSheetAt(0);
