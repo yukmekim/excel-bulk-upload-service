@@ -36,7 +36,7 @@ public class ProductController {
             String message = "Uploaded the file successfully: " + file.getOriginalFilename();
             return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.EXCEL_FILE_UPLOAD_ERROR, e.getMessage());
+            throw new BusinessException(ErrorCode.EXCEL_FILE_UPLOAD_ERROR, e.getMessage(), e);
         }
     }
 
@@ -52,7 +52,7 @@ public class ProductController {
                     + execution.getStatus();
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(new ResponseMessage(message));
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.EXCEL_JOB_START_ERROR, e.getMessage());
+            throw new BusinessException(ErrorCode.EXCEL_JOB_START_ERROR, e.getMessage(), e);
         }
     }
 
