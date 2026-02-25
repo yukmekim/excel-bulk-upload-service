@@ -21,6 +21,12 @@ public class UploadHistory {
     @Column(nullable = false)
     private String fileName;
 
+    @Column(name = "target_table_name")
+    private String targetTableName;
+
+    @Column(name = "uploader_id")
+    private String uploaderId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UploadStatus status;
