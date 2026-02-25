@@ -5,7 +5,6 @@ import com.yukmekim.excelbulkuploadservice.entity.Product;
 import com.yukmekim.excelbulkuploadservice.entity.UploadHistory;
 import com.yukmekim.excelbulkuploadservice.entity.UploadStatus;
 import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
-import com.yukmekim.excelbulkuploadservice.repository.UploadHistoryRepository;
 import com.yukmekim.excelbulkuploadservice.service.storage.FileStorageService;
 import com.yukmekim.excelbulkuploadservice.util.ExcelHelper;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final UploadHistoryRepository uploadHistoryRepository;
+    private final UploadHistoryService uploadHistoryService;
     private final FileStorageService fileStorageService;
 
     // Batch Dependencies
@@ -55,10 +54,12 @@ public class ProductService {
      * Original Synchronous Save Method (Refactored)
      */
     public void save(MultipartFile file) {
-        UploadHistory history = createUploadHistory(file.getOriginalFilename());
+        // "products" 테이블로 가정하고, 임시 사용자 식별자 "admin" 줌
+        UploadHistory history = uploadHistoryService.createPendingHistory(file.getOriginalFilename(), "products", "admin");
+        Long historyId = history.getId();
 
         try {
-            updateHistoryStatus(history, UploadStatus.IN_PROGRESS);
+            uploadHistoryService.startProcessing(historyId);
 
             List<ProductUploadDto> dtos = ExcelHelper.excelToProducts(file.getInputStream());
             List<Product> products = dtos.stream()
@@ -67,17 +68,15 @@ public class ProductService {
 
             saveProducts(products);
 
-            completeHistory(history, products.size(), products.size(), 0);
+            uploadHistoryService.completeHistory(historyId, products.size(), products.size(), 0);
 
         } catch (IOException e) {
             String errorMsg = "[IOException] " + e.getMessage();
-            history.fail(errorMsg);
-            uploadHistoryRepository.save(history);
+            uploadHistoryService.failHistory(historyId, errorMsg);
             throw new RuntimeException("Failed to process excel file: " + e.getMessage(), e);
         } catch (Exception e) {
             String errorMsg = "[" + e.getClass().getSimpleName() + "] " + e.getMessage();
-            history.fail(errorMsg);
-            uploadHistoryRepository.save(history);
+            uploadHistoryService.failHistory(historyId, errorMsg);
             throw new RuntimeException("Unexpected error during upload: " + e.getMessage(), e);
         }
     }
@@ -106,25 +105,4 @@ public class ProductService {
                 .build();
     }
 
-    // --- Helper methods for UploadHistory management ---
-
-    private UploadHistory createUploadHistory(String fileName) {
-        UploadHistory history = UploadHistory.builder()
-                .fileName(fileName)
-                .status(UploadStatus.PENDING)
-                .build();
-        return uploadHistoryRepository.save(history);
-    }
-
-    private void updateHistoryStatus(UploadHistory history, UploadStatus status) {
-        if (status == UploadStatus.IN_PROGRESS) {
-            history.startProcessing();
-        }
-        uploadHistoryRepository.save(history);
-    }
-
-    private void completeHistory(UploadHistory history, int total, int success, int failure) {
-        history.complete(total, success, failure);
-        uploadHistoryRepository.save(history);
-    }
 }
