@@ -4,6 +4,7 @@ import com.yukmekim.excelbulkuploadservice.common.exception.BusinessException;
 import com.yukmekim.excelbulkuploadservice.common.exception.ErrorCode;
 import com.yukmekim.excelbulkuploadservice.dto.ResponseMessage;
 import com.yukmekim.excelbulkuploadservice.entity.Product;
+import com.yukmekim.excelbulkuploadservice.service.ProductBatchService;
 import com.yukmekim.excelbulkuploadservice.service.ProductService;
 import com.yukmekim.excelbulkuploadservice.util.ExcelHelper;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductBatchService productBatchService;
 
     @PostMapping("/upload")
     public ResponseEntity<ResponseMessage> uploadFile(@RequestParam("file") MultipartFile file) {
@@ -47,7 +49,7 @@ public class ProductController {
         }
 
         try {
-            JobExecution execution = productService.runJob(file);
+            JobExecution execution = productBatchService.runJob(file);
             String message = "Batch Job started successfully. Job ID: " + execution.getJobId() + ", Status: "
                     + execution.getStatus();
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(new ResponseMessage(message));

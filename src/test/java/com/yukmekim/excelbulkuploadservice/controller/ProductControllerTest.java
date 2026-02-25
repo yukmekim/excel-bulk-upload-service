@@ -3,6 +3,7 @@ package com.yukmekim.excelbulkuploadservice.controller;
 import com.yukmekim.excelbulkuploadservice.common.exception.ErrorCode;
 import com.yukmekim.excelbulkuploadservice.common.exception.GlobalExceptionHandler;
 import com.yukmekim.excelbulkuploadservice.entity.Product;
+import com.yukmekim.excelbulkuploadservice.service.ProductBatchService;
 import com.yukmekim.excelbulkuploadservice.service.ProductService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -39,6 +40,9 @@ class ProductControllerTest {
 
     @MockitoBean
     private ProductService productService;
+
+    @MockitoBean
+    private ProductBatchService productBatchService;
 
     // ----------------------------------------------------------------
     // POST /api/excel/upload
@@ -83,7 +87,7 @@ class ProductControllerTest {
         JobExecution mockExecution = mock(JobExecution.class);
         given(mockExecution.getJobId()).willReturn(1L);
         given(mockExecution.getStatus()).willReturn(org.springframework.batch.core.BatchStatus.STARTED);
-        given(productService.runJob(any())).willReturn(mockExecution);
+        given(productBatchService.runJob(any())).willReturn(mockExecution);
 
         // When & Then
         mockMvc.perform(multipart("/api/excel/upload-batch").file(file))

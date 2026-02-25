@@ -4,7 +4,7 @@ import com.yukmekim.excelbulkuploadservice.entity.Product;
 import com.yukmekim.excelbulkuploadservice.entity.UploadHistory;
 import com.yukmekim.excelbulkuploadservice.entity.UploadStatus;
 import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
-import com.yukmekim.excelbulkuploadservice.repository.UploadHistoryRepository;
+import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
 import com.yukmekim.excelbulkuploadservice.service.storage.FileStorageService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -17,10 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.launch.JobLauncher;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -41,61 +38,13 @@ class ProductServiceTest {
     private ProductRepository productRepository;
 
     @Mock
-    private UploadHistoryRepository uploadHistoryRepository;
+    private UploadHistoryService uploadHistoryService;
 
     @Mock
     private FileStorageService fileStorageService;
 
-    @Mock
-    private JobLauncher jobLauncher;
-
-    @Mock
-    private Job productUploadJob;
-
     @InjectMocks
     private ProductService productService;
-
-    // ----------------------------------------------------------------
-    // runJob() 테스트
-    // ----------------------------------------------------------------
-
-    @Test
-    @DisplayName("runJob 호출 시 FileStorageService.store()가 먼저 호출되어야 한다")
-    void runJob_ShouldCallFileStorageServiceStore() throws Exception {
-        // Given
-        MockMultipartFile file = makeMockExcelFile("products.xlsx");
-        String storedPath = "/upload-dir/uuid_products.xlsx";
-        given(fileStorageService.store(file)).willReturn(storedPath);
-        given(jobLauncher.run(eq(productUploadJob), any(JobParameters.class)))
-                .willReturn(mock(JobExecution.class));
-
-        // When
-        productService.runJob(file);
-
-        // Then: fileStorageService.store() 가 1번 호출되었는지 검증
-        verify(fileStorageService, times(1)).store(file);
-    }
-
-    @Test
-    @DisplayName("runJob 호출 시 저장된 파일 경로가 Job 파라미터 filePath로 전달된다")
-    void runJob_ShouldPassStoredPathAsJobParameter() throws Exception {
-        // Given
-        MockMultipartFile file = makeMockExcelFile("products.xlsx");
-        String storedPath = "/upload-dir/uuid_products.xlsx";
-        given(fileStorageService.store(file)).willReturn(storedPath);
-
-        ArgumentCaptor<JobParameters> paramsCaptor = ArgumentCaptor.forClass(JobParameters.class);
-        given(jobLauncher.run(eq(productUploadJob), paramsCaptor.capture()))
-                .willReturn(mock(JobExecution.class));
-
-        // When
-        productService.runJob(file);
-
-        // Then: Job 파라미터에 storedPath가 filePath 키로 전달되었는지 검증
-        JobParameters capturedParams = paramsCaptor.getValue();
-        assertThat(capturedParams.getString("filePath")).isEqualTo(storedPath);
-        assertThat(capturedParams.getString("originalFileName")).isEqualTo("products.xlsx");
-    }
 
     // ----------------------------------------------------------------
     // save() 테스트
@@ -110,17 +59,18 @@ class ProductServiceTest {
         // UploadHistory mock 설정
         UploadHistory mockHistory = UploadHistory.builder()
                 .fileName("products.xlsx")
+                .targetTableName("products")
+                .uploaderId("admin")
                 .status(UploadStatus.PENDING)
                 .build();
-        given(uploadHistoryRepository.save(any(UploadHistory.class))).willReturn(mockHistory);
+        given(uploadHistoryService.createPendingHistory(any(), any(), any())).willReturn(mockHistory);
 
         // When
         productService.save(file);
 
         // Then: productRepository.saveAll이 1번 호출되었는지 검증
         verify(productRepository, times(1)).saveAll(anyList());
-        // UploadHistory가 최소 2번 저장되었는지 검증 (PENDING, IN_PROGRESS, COMPLETED)
-        verify(uploadHistoryRepository, atLeast(2)).save(any(UploadHistory.class));
+        verify(uploadHistoryService, times(1)).completeHistory(any(), anyInt(), anyInt(), anyInt());
     }
 
     @Test
@@ -156,13 +106,6 @@ class ProductServiceTest {
     // ----------------------------------------------------------------
     // 헬퍼 메소드
     // ----------------------------------------------------------------
-
-    private MockMultipartFile makeMockExcelFile(String filename) {
-        return new MockMultipartFile(
-                "file", filename,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "dummy".getBytes());
-    }
 
     private MockMultipartFile makeValidExcelFile() throws Exception {
         Workbook workbook = new XSSFWorkbook();
