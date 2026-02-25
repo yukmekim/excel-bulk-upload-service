@@ -4,7 +4,6 @@ import com.yukmekim.excelbulkuploadservice.entity.Product;
 import com.yukmekim.excelbulkuploadservice.entity.UploadHistory;
 import com.yukmekim.excelbulkuploadservice.entity.UploadStatus;
 import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
-import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
 import com.yukmekim.excelbulkuploadservice.service.storage.FileStorageService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -13,10 +12,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -27,7 +24,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 

@@ -1,13 +1,11 @@
 package com.yukmekim.excelbulkuploadservice;
 
-import com.yukmekim.excelbulkuploadservice.batch.BatchConfig;
 import com.yukmekim.excelbulkuploadservice.entity.Product;
 import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.*;
@@ -16,10 +14,6 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.io.File;
 import java.io.FileOutputStream;
