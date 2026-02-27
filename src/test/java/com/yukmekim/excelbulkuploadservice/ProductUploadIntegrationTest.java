@@ -53,11 +53,11 @@ class ProductUploadIntegrationTest {
         Sheet sheet = workbook.createSheet("Products");
 
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Name");
-        header.createCell(1).setCellValue("Category");
-        header.createCell(2).setCellValue("Price");
-        header.createCell(3).setCellValue("Stock Quantity");
-        header.createCell(4).setCellValue("Description");
+        header.createCell(0).setCellValue("name");
+        header.createCell(1).setCellValue("category");
+        header.createCell(2).setCellValue("price");
+        header.createCell(3).setCellValue("stock_quantity");
+        header.createCell(4).setCellValue("description");
 
         Row row1 = sheet.createRow(1);
         row1.createCell(0).setCellValue("Integration Test Product");
@@ -77,7 +77,10 @@ class ProductUploadIntegrationTest {
                 bos.toByteArray());
 
         // Perform upload
-        mockMvc.perform(multipart("/api/excel/upload").file(file))
+        mockMvc.perform(multipart("/api/excel/dynamic/upload")
+                        .file(file)
+                        .param("targetTableName", "products")
+                        .param("uploaderId", "system"))
                 .andExpect(status().isOk());
 
         // Verify Database
@@ -121,7 +124,10 @@ class ProductUploadIntegrationTest {
                 "text/plain",
                 "Just some text content".getBytes());
 
-        mockMvc.perform(multipart("/api/excel/upload").file(file))
+        mockMvc.perform(multipart("/api/excel/dynamic/upload")
+                        .file(file)
+                        .param("targetTableName", "products")
+                        .param("uploaderId", "system"))
                 .andExpect(status().isBadRequest());
     }
 }

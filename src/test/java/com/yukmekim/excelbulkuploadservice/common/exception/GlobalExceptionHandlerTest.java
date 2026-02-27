@@ -28,7 +28,10 @@ class GlobalExceptionHandlerTest {
                 // When & Then: BusinessException(EXCEL_FILE_NOT_FOUND) 발생 ->
                 // GlobalExceptionHandler가 400 반환
                 mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                                .multipart("/api/excel/upload").file(file))
+                                .multipart("/api/excel/dynamic/upload")
+                                .file(file)
+                                .param("targetTableName", "products")
+                                .param("uploaderId", "system"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.status").value(400))
                                 .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
@@ -43,11 +46,11 @@ class GlobalExceptionHandlerTest {
                 org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("Products");
 
                 org.apache.poi.ss.usermodel.Row header = sheet.createRow(0);
-                header.createCell(0).setCellValue("Name");
-                header.createCell(1).setCellValue("Category");
-                header.createCell(2).setCellValue("Price");
-                header.createCell(3).setCellValue("Stock Quantity");
-                header.createCell(4).setCellValue("Description");
+                header.createCell(0).setCellValue("name");
+                header.createCell(1).setCellValue("category");
+                header.createCell(2).setCellValue("price");
+                header.createCell(3).setCellValue("stock_quantity");
+                header.createCell(4).setCellValue("description");
 
                 org.apache.poi.ss.usermodel.Row row = sheet.createRow(1);
                 row.createCell(0).setCellValue("Test Product");
@@ -67,7 +70,10 @@ class GlobalExceptionHandlerTest {
 
                 // When & Then
                 mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                                .multipart("/api/excel/upload").file(file))
+                                .multipart("/api/excel/dynamic/upload")
+                                .file(file)
+                                .param("targetTableName", "products")
+                                .param("uploaderId", "system"))
                                 .andExpect(status().isOk());
         }
 }
