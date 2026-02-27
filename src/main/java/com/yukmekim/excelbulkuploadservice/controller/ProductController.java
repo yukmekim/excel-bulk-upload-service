@@ -27,21 +27,6 @@ public class ProductController {
     private final ProductService productService;
     private final ProductBatchService productBatchService;
 
-    @PostMapping("/upload")
-    public ResponseEntity<ResponseMessage> uploadFile(@RequestParam("file") MultipartFile file) {
-        if (!ExcelHelper.hasExcelFormat(file)) {
-            throw new BusinessException(ErrorCode.EXCEL_FILE_NOT_FOUND);
-        }
-
-        try {
-            productService.save(file);
-            String message = "Uploaded the file successfully: " + file.getOriginalFilename();
-            return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.EXCEL_FILE_UPLOAD_ERROR, e.getMessage(), e);
-        }
-    }
-
     @PostMapping("/upload-batch")
     public ResponseEntity<ResponseMessage> uploadFileBatch(@RequestParam("file") MultipartFile file) {
         if (!ExcelHelper.hasExcelFormat(file)) {
