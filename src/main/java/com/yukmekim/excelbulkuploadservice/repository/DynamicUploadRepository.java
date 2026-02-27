@@ -34,7 +34,7 @@ public class DynamicUploadRepository {
         // SQL 조립: INSERT INTO tableName (col1, col2) VALUES (:col1, :col2)
         String sql = buildInsertSql(tableName, columnNames);
 
-        // List<Map<...>> 형태를 NamedParameterJdbcTemplate 이 인식할 수 있는 Map 배열로 변환
+        // List<Map<...>> 형태를 NamedParameterJdbcTemplate 이 인식할 수 있는 Map 배열로 변환s
         @SuppressWarnings("unchecked")
         Map<String, Object>[] batchValues = records.toArray(new Map[0]);
 
