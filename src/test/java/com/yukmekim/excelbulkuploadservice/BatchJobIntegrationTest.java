@@ -106,9 +106,9 @@ class BatchJobIntegrationTest {
         row2.createCell(3).setCellValue(20);
         row2.createCell(4).setCellValue("Description 2");
 
-        FileOutputStream fos = new FileOutputStream(file);
-        workbook.write(fos);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            workbook.write(fos);
+        }
         workbook.close();
-        fos.close();
     }
 }
