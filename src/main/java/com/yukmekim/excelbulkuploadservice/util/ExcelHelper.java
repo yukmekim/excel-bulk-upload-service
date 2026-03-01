@@ -1,13 +1,10 @@
 package com.yukmekim.excelbulkuploadservice.util;
 
 import com.yukmekim.excelbulkuploadservice.dto.ProductUploadDto;
-import com.yukmekim.excelbulkuploadservice.entity.Product;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -18,42 +15,10 @@ import java.util.List;
 public class ExcelHelper {
 
     public static final String EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    private static final String[] HEADERS = { "Id", "Name", "Category", "Price", "Stock Quantity", "Description" };
     private static final String SHEET_NAME = "Products";
 
     public static boolean hasExcelFormat(MultipartFile file) {
         return EXCEL_CONTENT_TYPE.equals(file.getContentType());
-    }
-
-    public static ByteArrayInputStream productsToExcel(List<Product> products) {
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream();) {
-            Sheet sheet = workbook.createSheet(SHEET_NAME);
-
-            // Header
-            Row headerRow = sheet.createRow(0);
-
-            for (int col = 0; col < HEADERS.length; col++) {
-                Cell cell = headerRow.createCell(col);
-                cell.setCellValue(HEADERS[col]);
-            }
-
-            int rowIdx = 1;
-            for (Product product : products) {
-                Row row = sheet.createRow(rowIdx++);
-
-                row.createCell(0).setCellValue(product.getId());
-                row.createCell(1).setCellValue(product.getName());
-                row.createCell(2).setCellValue(product.getCategory());
-                row.createCell(3).setCellValue(product.getPrice().doubleValue());
-                row.createCell(4).setCellValue(product.getStockQuantity());
-                row.createCell(5).setCellValue(product.getDescription());
-            }
-
-            workbook.write(out);
-            return new ByteArrayInputStream(out.toByteArray());
-        } catch (IOException e) {
-            throw new RuntimeException("fail to import data to Excel file: " + e.getMessage());
-        }
     }
 
     public static List<ProductUploadDto> excelToProducts(InputStream is) {
