@@ -1,51 +1,46 @@
 package com.yukmekim.excelbulkuploadservice;
 
-import com.yukmekim.excelbulkuploadservice.entity.Product;
-import com.yukmekim.excelbulkuploadservice.repository.ProductRepository;
-import com.yukmekim.excelbulkuploadservice.repository.UploadHistoryRepository;
+import com.yukmekim.excelbulkuploadservice.common.exception.GlobalExceptionHandler;
+import com.yukmekim.excelbulkuploadservice.controller.ExcelImportController;
+import com.yukmekim.excelbulkuploadservice.service.DynamicUploadService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
-import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+/**
+ * DynamicUploadService를 Mock 처리하여 컨트롤러 레이어에서의
+ * 엑셀 업로드 흐름을 검증하는 통합 슬라이스 테스트.
+ */
+@WebMvcTest(ExcelImportController.class)
+@Import(GlobalExceptionHandler.class)
 class ProductUploadIntegrationTest {
 
         @Autowired
         private MockMvc mockMvc;
 
-        @Autowired
-        private ProductRepository productRepository;
-
-        @Autowired
-        private UploadHistoryRepository uploadHistoryRepository;
-
-        @BeforeEach
-        void setup() {
-                productRepository.deleteAll();
-                uploadHistoryRepository.deleteAll();
-        }
+        @MockitoBean
+        private DynamicUploadService dynamicUploadService;
 
         @Test
-        void shouldUploadExcelFileAndSaveProducts() throws Exception {
+        void shouldUploadExcelFileAndReturn200() throws Exception {
                 // Create a valid Excel file in memory
-                Workbook workbook = new XSSFWorkbook();
+                XSSFWorkbook workbook = new XSSFWorkbook();
                 Sheet sheet = workbook.createSheet("Products");
 
                 Row header = sheet.createRow(0);
@@ -72,29 +67,20 @@ class ProductUploadIntegrationTest {
                                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 bos.toByteArray());
 
-                // Perform upload
+                doNothing().when(dynamicUploadService)
+                                .uploadDynamicExcel(any(), eq("products"), eq("system"));
+
                 mockMvc.perform(multipart("/api/excel/dynamic/upload")
                                 .file(file)
                                 .param("targetTableName", "products")
                                 .param("uploaderId", "system"))
-                                .andExpect(status().isOk());
-
-                // Verify Database
-                List<Product> products = productRepository.findAll();
-                assertThat(products).hasSize(1);
-
-                Product savedProduct = products.get(0);
-                assertThat(savedProduct.getName()).isEqualTo("Integration Test Product");
-                assertThat(savedProduct.getCategory()).isEqualTo("Test Category");
-                assertThat(savedProduct.getPrice()).isEqualByComparingTo(new BigDecimal("99.99"));
-                assertThat(savedProduct.getStockQuantity()).isEqualTo(100);
-
-                // Verify History
-                assertThat(uploadHistoryRepository.count()).isEqualTo(1);
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.message")
+                                                .value("Successfully uploaded file 'integration-test.xlsx' into table 'products'"));
         }
 
         @Test
-        public void shouldReturnBadRequestWhenFileIsNotExcel() throws Exception {
+        void shouldReturnBadRequestWhenFileIsNotExcel() throws Exception {
                 MockMultipartFile file = new MockMultipartFile(
                                 "file",
                                 "test.txt",

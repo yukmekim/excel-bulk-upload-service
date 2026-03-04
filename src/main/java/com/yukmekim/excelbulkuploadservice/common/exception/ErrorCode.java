@@ -15,11 +15,7 @@ public enum ErrorCode {
     // Excel
     EXCEL_FILE_UPLOAD_ERROR(HttpStatus.EXPECTATION_FAILED, "Could not upload the file"),
     EXCEL_FILE_PARSE_ERROR(HttpStatus.BAD_REQUEST, "Fail to parse Excel file"),
-    EXCEL_FILE_NOT_FOUND(HttpStatus.BAD_REQUEST, "Please upload an excel file!"),
-    EXCEL_JOB_START_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Could not start batch job"),
-
-    // Product
-    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "Product not found");
+    EXCEL_FILE_NOT_FOUND(HttpStatus.BAD_REQUEST, "Please upload an excel file!");
 
     private final HttpStatus status;
     private final String message;

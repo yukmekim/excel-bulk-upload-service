@@ -2,7 +2,6 @@ package com.yukmekim.excelbulkuploadservice.common.exception;
 
 import com.yukmekim.excelbulkuploadservice.controller.ExcelImportController;
 import com.yukmekim.excelbulkuploadservice.service.DynamicUploadService;
-import com.yukmekim.excelbulkuploadservice.service.ProductBatchService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -37,9 +36,6 @@ class GlobalExceptionHandlerTest {
 
         @MockitoBean
         private DynamicUploadService dynamicUploadService;
-
-        @MockitoBean
-        private ProductBatchService productBatchService;
 
         @Test
         @DisplayName("엑셀 파일이 아닌 파일 업로드 시 400 Bad Request와 에러 메시지를 반환한다")
